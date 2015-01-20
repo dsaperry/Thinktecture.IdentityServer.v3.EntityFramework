@@ -15,6 +15,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using System.Threading.Tasks;
 using Thinktecture.IdentityServer.Core.Services;
@@ -32,12 +33,12 @@ namespace Thinktecture.IdentityServer.Core.EntityFramework
             this.context = context;
         }
 
-        public Task<Models.Consent> LoadAsync(string subject, string client)
+        public async Task<Models.Consent> LoadAsync(string subject, string client)
         {
-            var found = context.Consents.SingleOrDefault(x => x.Subject == subject && x.ClientId == client);
+            var found = await context.Consents.SingleOrDefaultAsync(x => x.Subject == subject && x.ClientId == client).ConfigureAwait(false);
             if (found == null)
             {
-                return Task.FromResult<Models.Consent>(null);
+                return null;
             }
                 
             var result = new Models.Consent
@@ -47,12 +48,12 @@ namespace Thinktecture.IdentityServer.Core.EntityFramework
                 Scopes = ParseScopes(found.Scopes)
             };
 
-            return Task.FromResult(result);
+            return result;
         }
 
-        public Task UpdateAsync(Models.Consent consent)
+        public async Task UpdateAsync(Models.Consent consent)
         {
-            var item = context.Consents.SingleOrDefault(x => x.Subject == consent.Subject && x.ClientId == consent.ClientId);
+            var item = await context.Consents.SingleOrDefaultAsync(x => x.Subject == consent.Subject && x.ClientId == consent.ClientId).ConfigureAwait(false);
             if (item == null)
             {
                 item = new Entities.Consent { Subject = consent.Subject, ClientId = consent.ClientId };
@@ -66,14 +67,12 @@ namespace Thinktecture.IdentityServer.Core.EntityFramework
 
             item.Scopes = StringifyScopes(consent.Scopes);
 
-            context.SaveChanges();
-            
-            return Task.FromResult(0);
+            await context.SaveChangesAsync().ConfigureAwait(false);
         }
 
-        public Task<IEnumerable<Models.Consent>> LoadAllAsync(string subject)
+        public async Task<IEnumerable<Models.Consent>> LoadAllAsync(string subject)
         {
-            var found = context.Consents.Where(x => x.Subject == subject).ToArray();
+            var found = await context.Consents.Where(x => x.Subject == subject).ToArrayAsync().ConfigureAwait(false);
             
             var results = found.Select(x=>new Models.Consent{
                 Subject = x.Subject, 
@@ -81,7 +80,7 @@ namespace Thinktecture.IdentityServer.Core.EntityFramework
                 Scopes = ParseScopes(x.Scopes) 
             });
 
-            return Task.FromResult(results.ToArray().AsEnumerable());
+            return results.ToArray().AsEnumerable();
         }
 
         private IEnumerable<string> ParseScopes(string scopes)
@@ -104,15 +103,13 @@ namespace Thinktecture.IdentityServer.Core.EntityFramework
             return scopes.Aggregate((s1, s2) => s1 + "," + s2);
         }
 
-        public Task RevokeAsync(string subject, string client)
+        public async Task RevokeAsync(string subject, string client)
         {
             var found = context.Consents.Where(x => x.Subject == subject && x.ClientId == client);
             
-            context.Consents.RemoveRange(found.ToArray());
+            context.Consents.RemoveRange(await found.ToArrayAsync().ConfigureAwait(false));
             
-            context.SaveChanges();
-
-            return Task.FromResult(0);
+            await context.SaveChangesAsync().ConfigureAwait(false);
         }
     }
 }

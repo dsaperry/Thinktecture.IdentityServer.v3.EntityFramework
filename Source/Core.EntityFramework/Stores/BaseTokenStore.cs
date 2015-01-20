@@ -16,6 +16,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using System.Threading.Tasks;
 using Thinktecture.IdentityServer.Core.EntityFramework.Entities;
@@ -64,52 +65,48 @@ namespace Thinktecture.IdentityServer.Core.EntityFramework
             return JsonConvert.DeserializeObject<T>(json, GetJsonSerializerSettings());
         }
 
-        public Task<T> GetAsync(string key)
+        public async Task<T> GetAsync(string key)
         {
-            var token = context.Tokens.FirstOrDefault(c => c.Key == key && c.TokenType == tokenType);
+            var token = await context.Tokens.FirstOrDefaultAsync(c => c.Key == key && c.TokenType == tokenType).ConfigureAwait(false);
             
-            if (token == null || token.Expiry < DateTimeOffset.UtcNow) return Task.FromResult<T>(null);
+            if (token == null || token.Expiry < DateTimeOffset.UtcNow) return null;
 
             T value = ConvertFromJson(token.JsonCode);
             
-            return Task.FromResult(value);
+            return value;
         }
 
-        public Task RemoveAsync(string key)
+        public async Task RemoveAsync(string key)
         {
-            var code = context.Tokens.FirstOrDefault(c => c.Key == key && c.TokenType == tokenType);
+            var code = await context.Tokens.FirstOrDefaultAsync(c => c.Key == key && c.TokenType == tokenType).ConfigureAwait(false);
 
             if (code != null)
             {
                 context.Tokens.Remove(code);
-                context.SaveChanges();
+                await context.SaveChangesAsync().ConfigureAwait(false);
             }
-
-            return Task.FromResult(0);
         }
 
-        public Task<IEnumerable<ITokenMetadata>> GetAllAsync(string subject)
+        public async Task<IEnumerable<ITokenMetadata>> GetAllAsync(string subject)
         {
-            var tokens = context.Tokens.Where(x => 
+            var tokens = await context.Tokens.Where(x => 
                 x.SubjectId == subject &&
-                x.TokenType == tokenType).ToArray();
+                x.TokenType == tokenType).ToArrayAsync().ConfigureAwait(false);
             
             var results = tokens.Select(x=>ConvertFromJson(x.JsonCode)).ToArray();
             
-            return Task.FromResult(results.Cast<ITokenMetadata>());
+            return results.Cast<ITokenMetadata>();
         }
         
-        public Task RevokeAsync(string subject, string client)
+        public async Task RevokeAsync(string subject, string client)
         {
-            var found = context.Tokens.Where(x => 
+            var found = await context.Tokens.Where(x => 
                 x.SubjectId == subject && 
                 x.ClientId == client && 
-                x.TokenType == tokenType).ToArray();
+                x.TokenType == tokenType).ToArrayAsync().ConfigureAwait(false);
             
             context.Tokens.RemoveRange(found);
-            context.SaveChanges();
-
-            return Task.FromResult(0);
+            await context.SaveChangesAsync().ConfigureAwait(false);
         }
 
         public abstract Task StoreAsync(string key, T value);

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using System.Linq;
+using System.Data.Entity;
 using System.Threading.Tasks;
 using Thinktecture.IdentityServer.Core.EntityFramework.Entities;
 using Thinktecture.IdentityServer.Core.Services;
@@ -32,9 +32,9 @@ namespace Thinktecture.IdentityServer.Core.EntityFramework
             this.context = context;
         }
 
-        public Task<Models.Client> FindClientByIdAsync(string clientId)
+        public async Task<Models.Client> FindClientByIdAsync(string clientId)
         {
-            var client = context.Clients
+            var client = await context.Clients
                 .Include("ClientSecrets")
                 .Include("RedirectUris")
                 .Include("PostLogoutRedirectUris")
@@ -42,10 +42,10 @@ namespace Thinktecture.IdentityServer.Core.EntityFramework
                 .Include("IdentityProviderRestrictions")
                 .Include("Claims")
                 .Include("CustomGrantTypeRestrictions")
-                .SingleOrDefault(x => x.ClientId == clientId);
+                .SingleOrDefaultAsync(x => x.ClientId == clientId).ConfigureAwait(false);
 
             Models.Client model = client.ToModel();
-            return Task.FromResult(model);    
+            return model;    
         }
     }
 }

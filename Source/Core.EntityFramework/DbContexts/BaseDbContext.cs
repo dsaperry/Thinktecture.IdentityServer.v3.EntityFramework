@@ -16,6 +16,8 @@
 using System.Data.Entity;
 using System.Data.Entity.Validation;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Thinktecture.IdentityServer.Core.EntityFramework
 {
@@ -26,11 +28,11 @@ namespace Thinktecture.IdentityServer.Core.EntityFramework
         {
         }
 
-        public override int SaveChanges()
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken)
         {
             try
             {
-                return base.SaveChanges();
+                return await base.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (DbEntityValidationException ex)
             {
@@ -48,6 +50,20 @@ namespace Thinktecture.IdentityServer.Core.EntityFramework
                 // Throw a new DbEntityValidationException with the improved exception message.
                 throw new DbEntityValidationException(exceptionMessage, ex.EntityValidationErrors);
             }
+        }
+
+        public override Task<int> SaveChangesAsync()
+        {
+            return SaveChangesAsync(CancellationToken.None);
+        }
+
+        public override int SaveChanges()
+        {
+            var task = SaveChangesAsync();
+
+            task.Wait();
+
+            return task.Result;
         }
     }
 }

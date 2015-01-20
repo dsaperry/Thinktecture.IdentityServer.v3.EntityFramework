@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using System.Threading.Tasks;
 using Thinktecture.IdentityServer.Core.EntityFramework.Entities;
@@ -33,7 +34,7 @@ namespace Thinktecture.IdentityServer.Core.EntityFramework
             this.context = context;
         }
 
-        public Task<IEnumerable<Models.Scope>> FindScopesAsync(IEnumerable<string> scopeNames)
+        public async Task<IEnumerable<Models.Scope>> FindScopesAsync(IEnumerable<string> scopeNames)
         {
             var scopes =
                 from s in context.Scopes.Include("ScopeClaims")
@@ -46,12 +47,12 @@ namespace Thinktecture.IdentityServer.Core.EntityFramework
                             select s;
             }
 
-            var models = scopes.ToList().Select(x => x.ToModel());
+            var models = (await scopes.ToListAsync().ConfigureAwait(false)).Select(x => x.ToModel());
 
-            return Task.FromResult(models);
+            return models;
         }
 
-        public Task<IEnumerable<Models.Scope>> GetScopesAsync(bool publicOnly = true)
+        public async Task<IEnumerable<Models.Scope>> GetScopesAsync(bool publicOnly = true)
         {
             var scopes =
                 from s in context.Scopes.Include("ScopeClaims")
@@ -64,9 +65,9 @@ namespace Thinktecture.IdentityServer.Core.EntityFramework
                             select s;
             }
 
-            var models = scopes.ToList().Select(x => x.ToModel());
+            var models = (await scopes.ToListAsync().ConfigureAwait(false)).Select(x => x.ToModel());
 
-            return Task.FromResult(models);
+            return models;
         }
     }
 }
